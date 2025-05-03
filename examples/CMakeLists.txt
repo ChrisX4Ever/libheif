@@ -1,6 +1,9 @@
 # Needed to find libheif/heif_version.h while compiling the library
 include_directories(${libheif_BINARY_DIR} ${libheif_SOURCE_DIR}/libheif/api ${libheif_SOURCE_DIR}/libheif)
 
+# Centraliza el directorio de salida de los ejecutables
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
 if (MSVC)
     set(getopt_sources
             ../extra/getopt.c
@@ -10,11 +13,15 @@ if (MSVC)
     include_directories("../extra")
 endif ()
 
+if (WITH_HEADER_COMPRESSION)
+    add_compile_definitions(WITH_HEADER_COMPRESSION=1)
+endif ()
+
 add_executable(heif-info ${getopt_sources}
         heif_info.cc
         common.cc
         common.h)
-target_link_libraries(heif-info heif)
+target_link_libraries(heif-info PRIVATE heif heifio)
 install(TARGETS heif-info RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(FILES heif-info.1 DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 
@@ -32,7 +39,11 @@ install(FILES heif-dec.1 DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 if(NOT WIN32)
   install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink heif-dec${CMAKE_EXECUTABLE_SUFFIX} \$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/heif-convert${CMAKE_EXECUTABLE_SUFFIX})")
 else()
-  install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/heif-dec${CMAKE_EXECUTABLE_SUFFIX} ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/heif-convert${CMAKE_EXECUTABLE_SUFFIX})")
+  install(CODE "
+    file(REMOVE_RECURSE ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/heif-convert${CMAKE_EXECUTABLE_SUFFIX})
+    file(COPY ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/heif-dec${CMAKE_EXECUTABLE_SUFFIX}
+         DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}
+         FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)")
 endif()
 
 
@@ -47,22 +58,18 @@ target_include_directories(heif-enc PRIVATE ${libheif_SOURCE_DIR})
 install(TARGETS heif-enc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(FILES heif-enc.1 DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 
-if (WITH_HEADER_COMPRESSION)
-    target_compile_definitions(heif-enc PRIVATE WITH_HEADER_COMPRESSION=1)
-endif ()
-
 
 if (PNG_FOUND)
     add_executable(heif-thumbnailer ${getopt_sources}
             heif_thumbnailer.cc
             common.cc
             common.h)
-    target_link_libraries(heif-thumbnailer heif heifio)
+    target_link_libraries(heif-thumbnailer PRIVATE heif heifio)
     target_include_directories(heif-thumbnailer PRIVATE ${libheif_SOURCE_DIR})
 
     install(TARGETS heif-thumbnailer RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
     install(FILES heif-thumbnailer.1 DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
-endif()
+endif ()
 
 
 find_package(SDL2 NO_MODULE)
@@ -84,4 +91,4 @@ add_executable(heif-test ${getopt_sources}
         heif_test.cc
         common.cc
         common.h)
-target_link_libraries(heif-test heif)
+target_link_libraries(heif-test PRIVATE heif heifio)
