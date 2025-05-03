@@ -97,21 +97,6 @@ void list_all_decoders()
   list_decoders(heif_compression_VVC);
 }
 
-
-std::string fourcc_to_string(uint32_t fourcc)
-{
-  char s[5];
-  s[0] = static_cast<char>((fourcc>>24) & 0xFF);
-  s[1] = static_cast<char>((fourcc>>16) & 0xFF);
-  s[2] = static_cast<char>((fourcc>>8) & 0xFF);
-  s[3] = static_cast<char>((fourcc) & 0xFF);
-  s[4]=0;
-
-  return s;
-}
-
-
-
 int check_for_valid_input_HEIF_file(const std::string& input_filename)
 {
   std::ifstream istr(input_filename.c_str(), std::ios_base::binary);
